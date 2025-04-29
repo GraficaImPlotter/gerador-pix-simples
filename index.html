@@ -1,97 +1,69 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de PIX Simplão</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-        input, button { width: 100%; padding: 10px; margin: 5px 0; }
-        #pixResult { margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px; }
-        #loading { display: none; color: blue; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PIX com Mercado Pago</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+    input, button { width: 100%; padding: 10px; margin: 5px 0; }
+    #pixResult { margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+  </style>
 </head>
 <body>
-    <h1>Gerador de PIX Rápido</h1>
-    
-    <div>
-        <label>Nome do Cliente:</label>
-        <input type="text" id="cliente" placeholder="Digite o nome" required>
-    </div>
-    
-    <div>
-        <label>Produto/Serviço:</label>
-        <input type="text" id="produto" placeholder="Ex: Banner 1x1m" required>
-    </div>
-    
-    <div>
-        <label>Valor (R$):</label>
-        <input type="number" id="valor" placeholder="100.00" min="1" step="0.01" required>
-    </div>
-    
-    <button onclick="gerarPix()" id="btnGerar">GERAR PIX COPIÁVEL</button>
-    <div id="loading">Gerando PIX, aguarde...</div>
-    
-    <div id="pixResult" style="display: none;">
-        <h3>PIX Gerado!</h3>
-        <p><strong>Cliente:</strong> <span id="clienteResult"></span></p>
-        <p><strong>Valor:</strong> R$ <span id="valorResult"></span></p>
-        <p><strong>Código PIX (copia e cola):</strong></p>
-        <textarea id="pixCode" rows="4" style="width: 100%;" readonly></textarea>
-        <p><strong>QR Code:</strong></p>
-        <img id="qrCode" src="" alt="QR Code PIX" style="max-width: 200px;">
-    </div>
+  <h1>Gerador de PIX via Mercado Pago</h1>
 
-    <script>
-        async function gerarPix() {
-            const cliente = document.getElementById("cliente").value;
-            const produto = document.getElementById("produto").value;
-            const valor = parseFloat(document.getElementById("valor").value);
-            const btnGerar = document.getElementById("btnGerar");
-            const loading = document.getElementById("loading");
+  <label>Nome do Cliente:</label>
+  <input type="text" id="cliente" placeholder="Digite o nome">
 
-            if (!cliente || !produto || !valor) {
-                alert("Preencha todos os campos corretamente!");
-                return;
-            }
+  <label>Valor (R$):</label>
+  <input type="number" id="valor" placeholder="Ex: 150.00" min="1" step="0.01">
 
-            btnGerar.disabled = true;
-            loading.style.display = "block";
+  <button onclick="gerarPix()">Gerar PIX</button>
 
-            try {
-                // Substitua esta URL pela URL do seu back-end
-                const response = await fetch("https://seu-backend.com/gerar-pix", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        cliente: cliente,
-                        produto: produto,
-                        valor: valor
-                    })
-                });
+  <div id="pixResult" style="display:none">
+    <h3>PIX Gerado</h3>
+    <p><strong>Código copia e cola:</strong></p>
+    <textarea id="pixCode" rows="4" style="width: 100%;" readonly></textarea>
+    <button onclick="copiarPix()">Copiar Código</button>
+    <p><strong>QR Code:</strong></p>
+    <img id="qrCode" style="max-width: 250px;">
+  </div>
 
-                if (!response.ok) {
-                    throw new Error(`Erro: ${response.status}`);
-                }
+  <script>
+    async function gerarPix() {
+      const cliente = document.getElementById("cliente").value;
+      const valor = parseFloat(document.getElementById("valor").value);
 
-                const data = await response.json();
+      if (!cliente || !valor) {
+        alert("Preencha todos os campos!");
+        return;
+      }
 
-                document.getElementById("clienteResult").textContent = cliente;
-                document.getElementById("valorResult").textContent = valor.toFixed(2);
-                document.getElementById("pixCode").value = data.copia_cola;
-                document.getElementById("qrCode").src = data.qr_code;
-                document.getElementById("pixResult").style.display = "block";
+      const res = await fetch("http://localhost:3000/gerar-pix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cliente, valor })
+      });
 
-            } catch (error) {
-                alert("Erro ao gerar PIX: " + error.message);
-                console.error("Detalhes do erro:", error);
-            } finally {
-                btnGerar.disabled = false;
-                loading.style.display = "none";
-            }
-        }
-    </script>
+      const data = await res.json();
+
+      if (data.error) {
+        alert("Erro: " + data.error);
+        return;
+      }
+
+      document.getElementById("pixCode").value = data.copia_cola;
+      document.getElementById("qrCode").src = "data:image/png;base64," + data.qr_code;
+      document.getElementById("pixResult").style.display = "block";
+    }
+
+    function copiarPix() {
+      const textarea = document.getElementById("pixCode");
+      textarea.select();
+      document.execCommand("copy");
+      alert("Código copiado!");
+    }
+  </script>
 </body>
 </html>
