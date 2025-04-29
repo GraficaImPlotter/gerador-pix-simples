@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de PIX Simplão</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; }
+        #pixResult { margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Gerador de PIX Rápido</h1>
+    
+    <div>
+        <label>Nome do Cliente:</label>
+        <input type="text" id="cliente" placeholder="Digite o nome">
+    </div>
+    
+    <div>
+        <label>Produto/Serviço:</label>
+        <input type="text" id="produto" placeholder="Ex: Banner 1x1m">
+    </div>
+    
+    <div>
+        <label>Valor (R$):</label>
+        <input type="number" id="valor" placeholder="100.00">
+    </div>
+    
+    <button onclick="gerarPix()">GERAR PIX COPIÁVEL</button>
+    
+    <div id="pixResult" style="display: none;">
+        <h3>PIX Gerado!</h3>
+        <p><strong>Cliente:</strong> <span id="clienteResult"></span></p>
+        <p><strong>Valor:</strong> R$ <span id="valorResult"></span></p>
+        <p><strong>Código PIX (copia e cola):</strong></p>
+        <textarea id="pixCode" rows="4" style="width: 100%;"></textarea>
+    </div>
+
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <script>
+        // Configure suas credenciais do Mercado Pago (substitua pelo SEU ACCESS_TOKEN)
+        const mp = new MercadoPago('APP_USR-7f7dec5a-3b1d-4d79-b86f-285827384b33', {
+            locale: 'pt-BR'
+        });
+
+        async function gerarPix() {
+            const cliente = document.getElementById("cliente").value;
+            const produto = document.getElementById("produto").value;
+            const valor = parseFloat(document.getElementById("valor").value);
+
+            if (!cliente || !produto || !valor) {
+                alert("Preencha todos os campos!");
+                return;
+            }
+
+            try {
+                // Cria a cobrança PIX
+                const response = await fetch("https://api.mercadopago.com/v1/payments", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer APP_USR-2800773803181431-103111-ab1f57af96cd1e845c2bc87a02a85245-1215107629" // SUA CHAVE AQUI
+                    },
+                    body: JSON.stringify({
+                        transaction_amount: valor,
+                        description: `Venda para ${cliente}: ${produto}`,
+                        payment_method_id: "pix",
+                        payer: {
+                            email: "cliente@exemplo.com", // Pode ser fixo ou coletar do cliente
+                            first_name: cliente.split(" ")[0] || "Cliente"
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                // Mostra o resultado
+                document.getElementById("clienteResult").textContent = cliente;
+                document.getElementById("valorResult").textContent = valor.toFixed(2);
+                document.getElementById("pixCode").value = data.point_of_interaction.transaction_data.qr_code;
+                document.getElementById("pixResult").style.display = "block";
+
+            } catch (error) {
+                alert("Erro ao gerar PIX: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
